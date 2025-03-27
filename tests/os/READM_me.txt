@@ -1,0 +1,143 @@
+# Regulatory Data Access Library
+
+A flexible, modular library for accessing regulatory data from OpenSearch and other potential data sources.
+
+## Features
+
+- **Abstracted Data Access**: Clean, elegant abstractions for accessing data
+- **Async Operations**: Full async/await support for efficient I/O
+- **Type Safety**: Strong typing with generics and dataclasses
+- **Extensible Design**: Easy to add new data sources
+- **OpenSearch Integration**: Powerful querying and filtering capabilities
+- **Factory Pattern**: Simple component creation and configuration
+
+## Architecture
+
+The library follows a modular, layered design:
+
+```
+┌─────────────────────────────────────┐
+│             Applications            │
+└───────────────────┬─────────────────┘
+                    │
+┌───────────────────▼─────────────────┐
+│              Factory                │
+└───────────────────┬─────────────────┘
+                    │
+┌───────────────────▼─────────────────┐
+│   DAOs                 Data Sources  │
+└───────────────────┬─────────────────┘
+                    │
+┌───────────────────▼─────────────────┐
+│           Clients (OpenSearch)      │
+└─────────────────────────────────────┘
+```
+
+### Components
+
+- **Clients**: Low-level clients for interacting with data stores (OpenSearch)
+- **Data Sources**: Abstract data access for specific entity types
+- **DAOs**: Higher-level operations and business logic
+- **Factory**: Creates and configures components
+
+## Installation
+
+```bash
+pip install regulatory-data-access
+```
+
+## Quick Start
+
+```python
+import asyncio
+from datetime import datetime
+from data_access.factory import factory
+from data_access.dao.regulatory_dao import RegulatoryDataType, RegulatoryJurisdiction
+
+async def main():
+    # Get a regulatory DAO
+    regulatory_dao = factory.get_regulatory_dao()
+    
+    # Search for regulations
+    results = await regulatory_dao.search_regulations(
+        query_text="data privacy",
+        jurisdiction=RegulatoryJurisdiction.EU,
+        data_type=RegulatoryDataType.REGULATION
+    )
+    
+    # Process results
+    for doc in results.hits:
+        print(f"Found regulation: {doc['title']}")
+    
+    # Clean up
+    await factory.close_all_clients()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Using the Data Source API
+
+For more direct control:
+
+```python
+import asyncio
+from data_access.factory import factory
+from data_access.sources.regulatory_data_source import RegulatoryDocument
+from data_access.dao.regulatory_dao import RegulatoryDataType, RegulatoryJurisdiction
+
+async def main():
+    # Get a regulatory data source
+    data_source = factory.get_regulatory_data_source()
+    
+    # Create a document
+    document = RegulatoryDocument(
+        id="reg-123",
+        title="Sample Regulation",
+        data_type=RegulatoryDataType.REGULATION,
+        jurisdiction=RegulatoryJurisdiction.US
+    )
+    
+    # Save it
+    await data_source.create(document)
+    
+    # Search by text
+    results = await data_source.search_by_text("sample")
+    
+    # Clean up
+    await factory.close_all_clients()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Configuration
+
+The library can be configured through environment variables:
+
+- `OPENSEARCH_HOSTS`: Comma-separated list of OpenSearch hosts
+- `OPENSEARCH_USERNAME`: Username for basic auth
+- `OPENSEARCH_PASSWORD`: Password for basic auth
+- `AWS_REGION`: AWS region for IAM authentication
+
+Or programmatically:
+
+```python
+factory.get_opensearch_client(
+    hosts=["https://opensearch.example.com:9200"],
+    username="user",
+    password="pass"
+)
+```
+
+## Extending with New Data Sources
+
+The library is designed to be extensible. To add a new data source:
+
+1. Implement the `DataSource` interface or extend the `OpenSearchDataSource`
+2. Add a factory method to create your data source
+3. Optionally create a DAO for higher-level operations
+
+## License
+
+MIT
